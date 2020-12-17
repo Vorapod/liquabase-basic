@@ -1,0 +1,38 @@
+version: '3.1'
+
+services:
+  company-a-db:
+    image: company-a-db:1.0.0
+    build:
+      context: database/server
+    environment:
+        MYSQL_ROOT_PASSWORD: example
+        MYSQL_DATABASE: company_a
+        MYSQL_USER: vorapod
+        MYSQL_PASSWORD: password
+    volumes: 
+      - ./database/server/dump:/docker-entrypoint-initdb.d
+    ports: 
+      - 3306:3306
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8088:8080
+    depends_on: 
+      - company-a-db
+  company-a-db-migration:
+    image: company-a-db-migration:1.0.0
+    build:
+      context: database/migration
+    volumes: 
+      - ./database/migration/:/liquibase
+    environment: 
+      LIQUIBASE_URL: jdbc:mysql://company-a-db:3306/company_a
+      LIQUIBASE_USERNAME: vorapod
+      LIQUIBASE_PASSWORD: password
+      LIQUIBASE_CHANGELOG: changelog.yaml
+      LIQUIBASE_CONTEXTS: development
+    command: update
+    depends_on: 
+      - company-a-db
